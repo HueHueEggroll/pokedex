@@ -38,7 +38,7 @@ const layout = {
       y: 175,
       height: 220,
 
-      // Adjust these until the polygon lines up with the background hexagon
+      // hexagon graphic alignment
       chartCenterX: 101,
       chartCenterY: 106,
       chartRadius: 70,
@@ -50,6 +50,7 @@ const layout = {
       barGap: 28,
     },
 
+    // types, height/weight UI
     rightTop: {
       y: 70,
       height: 70,
@@ -57,6 +58,7 @@ const layout = {
       panelWidth: 155,
     },
 
+    // speaker/button placement
     bottom: {
       y: 430,
       height: 150,
@@ -71,6 +73,7 @@ const layout = {
     },
   },
 
+  // list view ui config
   list: {
     width: 210,
     height: 35,
@@ -87,6 +90,7 @@ const layout = {
       minimumThumbHeight: 18,
     },
 
+    // sprite platform
     platform: {
       width: 24,
       height: 8,
@@ -96,6 +100,7 @@ const layout = {
     },
   },
 
+  // list buttons
   buttons: {
     y: 370,
     height: 40,
@@ -219,6 +224,7 @@ let cryIcon;
 let menuSpriteCache = {};
 let detailSpriteCache = {};
 
+// dataset contains more, but this caps it at gen 1 pokemon
 const MAX_POKEMON = 151;
 
 let currentScreen = "list";
@@ -235,17 +241,17 @@ const CRIES_ENABLED = false;
 // ==================================================
 
 function preload() {
-  // Only required data is loaded during preload.
+  // only required data is loaded during preload
   loadTable("data/pokemon.csv", "csv", "header", tableLoaded, tableFailed);
 }
 
 function setup() {
   createCanvas(900, 600);
 
-  // Use a fallback font immediately.
+  // fallback font
   textFont("Arial");
 
-  // Optional assets load after the sketch starts.
+  // load custom images and fonts, revert to fallbacks if failed
   loadOptionalAssets();
 }
 
@@ -280,6 +286,7 @@ function fontLoadFailed(error) {
 function draw() {
   background(colors.canvas);
 
+  // Draw Pokedex shell
   drawPokedex();
 
   // Draw the main screen and its contents
@@ -328,6 +335,7 @@ function tableFailed(error) {
 }
 
 function convertTableToPokemon(table) {
+  // pull dataset info
   return table.rows.map(function (row) {
     return {
       dexNumber: row.getNum("national_number"),
@@ -355,6 +363,7 @@ function convertTableToPokemon(table) {
   });
 }
 
+// For pokemon with single types, returns null if no second type
 function getOptionalString(row, columnName) {
   let value = row.getString(columnName);
 
@@ -365,6 +374,7 @@ function getOptionalString(row, columnName) {
   return value;
 }
 
+// capitalize first letter of type
 function formatType(type) {
   if (type === null || type === "") {
     return null;
@@ -373,6 +383,7 @@ function formatType(type) {
   return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 }
 
+// For displaying info of highlighted pokemon in list view
 function getHighlightedPokemon() {
   if (highlightedIndex < 0 || highlightedIndex >= pokemonList.length) {
     return null;
@@ -381,6 +392,7 @@ function getHighlightedPokemon() {
   return pokemonList[highlightedIndex];
 }
 
+// For displaying full body image of selected pokemon in detail view
 function getSelectedPokemon() {
   if (
     selectedPokemonIndex === null ||
@@ -393,10 +405,12 @@ function getSelectedPokemon() {
   return pokemonList[selectedPokemonIndex];
 }
 
+// Pull image of pokemon
 function getPokemonFileName(pokemon) {
   return `${nf(pokemon.dexNumber, 3)}.png`;
 }
 
+// Pull menu sprite image
 function getMenuSprite(pokemon) {
   let dexNumber = pokemon.dexNumber;
 
@@ -409,6 +423,7 @@ function getMenuSprite(pokemon) {
   return menuSpriteCache[dexNumber];
 }
 
+// Pull full body image
 function getDetailSprite(pokemon) {
   let dexNumber = pokemon.dexNumber;
 
@@ -425,6 +440,7 @@ function getDetailSprite(pokemon) {
 // 6. NAVIGATION
 // ==================================================
 
+// If on list view, button selects a pokemon; if on detail view, returns to list view
 function selectOrReturn() {
   if (currentScreen === "list") {
     selectedPokemonIndex = highlightedIndex;
@@ -436,45 +452,49 @@ function selectOrReturn() {
 }
 
 function moveHighlightUp() {
+  // if already at the uppermost selectable item, return
   if (highlightedIndex <= 0) {
     return;
   }
 
   highlightedIndex--;
 
-  // Keep the details screen synchronized with the highlighted Pokémon.
+  // Keep the details screen synchronized with the highlighted Pokémon
   if (currentScreen === "details") {
     selectedPokemonIndex = highlightedIndex;
   }
 
+  // if at uppermost selectable item, lowers the index of the upper unselectable item
   if (highlightedIndex < visibleStartIndex) {
     visibleStartIndex--;
   }
 }
 
 function moveHighlightDown() {
+  // if already at the lowermost selectable item, return
   if (highlightedIndex >= pokemonList.length - 1) {
     return;
   }
 
   highlightedIndex++;
 
-  // Keep the details screen synchronized with the highlighted Pokémon.
+  // Keep the details screen synchronized with the highlighted Pokémon
   if (currentScreen === "details") {
     selectedPokemonIndex = highlightedIndex;
   }
 
+  // if at lowermost selectable item, raises the index of the lower unselectable item
   if (highlightedIndex >= visibleStartIndex + layout.list.visibleItems) {
     visibleStartIndex++;
   }
 }
 
 function keyPressed() {
-  if (key === "a" || key === "A") {
+  if (key === "a" || key === "A" || key === "LEFT_ARROW") {
     moveHighlightUp();
   }
 
-  if (key === "d" || key === "D") {
+  if (key === "d" || key === "D" || key === "RIGHT_ARROW") {
     moveHighlightDown();
   }
 
@@ -487,10 +507,12 @@ function keyPressed() {
 // 7. POSITION AND DRAWING HELPERS
 // ==================================================
 
+// For ui items relative to left-hand side of the pokedex
 function getLeftX() {
   return layout.pokedex.x + layout.margin;
 }
 
+// For ui items relative to right-hand side of the pokedex
 function getRightX(width) {
   return layout.pokedex.x + layout.pokedex.width - layout.margin - width;
 }
@@ -528,6 +550,7 @@ function drawScreenBorder(x, y, width, height) {
   rect(x, y, width, height);
 }
 
+// Darkens list item and sprite when out of list focus
 function darkenColor(colorValue, amount) {
   let originalColor = color(colorValue);
   let black = color("#000000");
@@ -586,7 +609,7 @@ function drawMainScreenBorder() {
 }
 
 function drawSelectedPokemon() {
-  // The detail image follows the currently highlighted Pokémon.
+  // The detail image follows the currently highlighted Pokémon
   let pokemon = getHighlightedPokemon();
 
   if (pokemon === null) {
@@ -639,7 +662,7 @@ function drawListScrollbar() {
 
   let cellX = getLeftX() + layout.screen.width / 2.5;
 
-  // Place the scrollbar just to the left of the list cells.
+  // Place the scrollbar just to the left of the list cells
   let scrollbarX =
     cellX - layout.list.scrollbar.gap - layout.list.scrollbar.width;
 
@@ -1227,7 +1250,7 @@ function drawTemporaryMasks() {
 
   let maskPadding = 2;
 
-  // Hide the part of the top cell above the screen.
+  // Hide the part of the top cell above the screen
   rect(
     platformLeft - maskPadding,
     topCellY - maskPadding,
@@ -1235,7 +1258,7 @@ function drawTemporaryMasks() {
     screenY - topCellY + maskPadding,
   );
 
-  // Hide the part of the bottom cell below the screen.
+  // Hide the part of the bottom cell below the screen
   rect(
     platformLeft - maskPadding,
     screenBottom,
@@ -1243,7 +1266,7 @@ function drawTemporaryMasks() {
     bottomCellEnd - screenBottom + maskPadding,
   );
 
-  // Hide cell overflow past the right edge.
+  // Hide cell overflow past the right edge
   if (cellRight > screenRight) {
     rect(
       screenRight,
